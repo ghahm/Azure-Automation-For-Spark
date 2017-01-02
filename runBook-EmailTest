@@ -1,0 +1,33 @@
+<# Referred to https://gallery.technet.microsoft.com/scriptcenter/Sending-email-from-Azure-547715b1
+ 
+.EXAMPLE  
+    Send-LocalizedTitleMail -AzureOrgIdCredential "Azure Cred" -O365Credential "O365 Cred" -AzureSubscriptionId "xxxxxxxxxxxxxxx" -MessageBody "This is test message." -MessageSubject "これはテストです。" -MessageTo "recipient@hoge.net" -MessageFrom "sender@hoge.net" 
+ 
+ 
+.NOTES  
+    AUTHOR: Unknown 
+    LASTEDIT: Jan 6, 2016 
+#>  
+
+# 메시지 만들기 
+$Message = New-Object System.Net.Mail.MailMessage  
+$Message.From = "ghahm@hotmail.com" 
+#$Message.replyTo = "" 
+$Message.To.Add("ghahm@microsoft.com") 
+$Message.Body = "바디" 
+$Message.BodyEncoding = ([System.Text.Encoding]::UTF8)  
+$Message.IsBodyHtml = "true" 
+$Message.Subject = "제목" 
+$Message.SubjectEncoding = ([System.Text.Encoding]::UTF8) 
+
+# smtp 설정하기
+$myHotmailCred = New-Object System.Net.NetworkCredential("ghahm@hotmail.com", "!Drhouse73")
+$mySmtpClient = 'smtp.live.com'
+$mySmtpClientPort = 587
+
+# 전송하기
+$SmtpClient = New-Object System.Net.Mail.SmtpClient $mySmtpClient, $mySmtpClientPort 
+$SmtpClient.Credentials = $myHotmailCred 
+$SmtpClient.EnableSsl   = "true"
+  
+$SmtpClient.Send($Message) 

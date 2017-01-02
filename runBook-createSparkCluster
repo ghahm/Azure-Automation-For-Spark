@@ -25,7 +25,7 @@ catch {
     }
 }
 
-Select-AzureRmSubscription -subscriptionName "My Internal Subscription" 
+Select-AzureRmSubscription -subscriptionName "[Subscription Name]" # For test
  
  
 ####################################

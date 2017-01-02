@@ -11,9 +11,9 @@
 
 # 메시지 만들기 
 $Message = New-Object System.Net.Mail.MailMessage  
-$Message.From = "ghahm@hotmail.com" 
+$Message.From = "[Sender's e-mail address]" 
 #$Message.replyTo = "" 
-$Message.To.Add("ghahm@microsoft.com") 
+$Message.To.Add("[Receiver's e-mail address]") 
 $Message.Body = "바디" 
 $Message.BodyEncoding = ([System.Text.Encoding]::UTF8)  
 $Message.IsBodyHtml = "true" 
@@ -21,9 +21,9 @@ $Message.Subject = "제목" 
 $Message.SubjectEncoding = ([System.Text.Encoding]::UTF8) 
 
 # smtp 설정하기
-$myHotmailCred = New-Object System.Net.NetworkCredential("ghahm@hotmail.com", "!Drhouse73")
-$mySmtpClient = 'smtp.live.com'
-$mySmtpClientPort = 587
+$myHotmailCred = New-Object System.Net.NetworkCredential("[Sender's e-mail address]", "[Sender's e-mail password]")
+$mySmtpClient = 'smtp.live.com' # (ex) hotmail.com
+$mySmtpClientPort = 587 # (ex) hotmail.com
 
 # 전송하기
 $SmtpClient = New-Object System.Net.Mail.SmtpClient $mySmtpClient, $mySmtpClientPort 

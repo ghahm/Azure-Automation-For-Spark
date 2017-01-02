@@ -1,8 +1,8 @@
-Select-AzureRmSubscription -SubscriptionName "My Internal Subscription"
+Select-AzureRmSubscription -SubscriptionName "[Subscription Name]"
 
-$clusterUser = "admin"
-$clusterPwd = "!2345Asdfg"
-$clusterName = "ghspark162demojpw"
+$clusterUser = "[Cluster User Name]"
+$clusterPwd = "[Cluster User Password]"
+$clusterName = "[Cluster Name]"
 
 $passwd = ConvertTo-SecureString $clusterPwd –AsPlainText -Force 
 $creds = New-Object System.Management.Automation.PSCredential($clusterUser, $passwd)
@@ -10,7 +10,7 @@ $creds = New-Object System.Management.Automation.PSCredential($clusterUser, $pas
 # POST Invoke-WebRequest Spark job
 $livyUri = "https://" + $clusterName + ".azurehdinsight.net/livy/batches"
 $sparkPyShellFolder = "wasbs://" + $clusterName + "@ghtestdatastacc.blob.core.windows.net/app/PyShell/"
-$jarName = $sparkPyShellFolder + "sampleSQL.py"
+$jarName = $sparkPyShellFolder + "sampleSQL.py" # sample Pytyhon code
 $className = $jarName
 #Write-Host "jarName..." $jarName -ForegroundColor Green 
 #Write-Host "className..." $className -ForegroundColor Green  

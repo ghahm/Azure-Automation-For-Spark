@@ -1,0 +1,63 @@
+Select-AzureRmSubscription -SubscriptionName "My Internal Subscription"
+
+$clusterUser = "admin"
+$clusterPwd = "!2345Asdfg"
+$clusterName = "ghspark162demojpw"
+
+$passwd = ConvertTo-SecureString $clusterPwd –AsPlainText -Force 
+$creds = New-Object System.Management.Automation.PSCredential($clusterUser, $passwd)
+
+# GET Invoke-WebRequest Spark job
+$livyUri = "https://" + $clusterName + ".azurehdinsight.net/livy/batches"
+$sparkJobId = "/32"
+$sparkJobIdLivyUri = $livyUri + $sparkJobId
+
+#Write-Host "livyUri..." $livyUri -ForegroundColor Green 
+
+$sparkJob_Res_state = "running" # Initializing
+
+while ($sparkJob_Res_state -eq "running") {
+    $sparkJobResponse = Invoke-WebRequest -Uri $sparkJobIdLivyUri `
+                                  -Credential $creds `
+                                  -TimeoutSec 3600 `
+                                  -UseBasicParsing `
+                                  -Method GET
+    #Write-Host "sparkJobResponse is $sparkJobResponse ..." -ForegroundColor Green
+
+    $jsonJobResponse = ConvertFrom-Json -InputObject $sparkJobResponse
+    #Write-Host "jsonJobResponse is $jsonJobResponse ..." -ForegroundColor Green 
+
+    $sparkJob_Res_id = $jsonJobResponse[0].("id")
+    Write-Host "sparkJob_Res_id is $sparkJob_Res_id ..." -ForegroundColor Green
+
+    # state --> running, dead, 
+    $sparkJob_Res_state = $jsonJobResponse[0].("state")
+    Write-Host "sparkJob_Res_state is $sparkJob_Res_state ..." -ForegroundColor Green
+
+    <#
+    $sparkJob_Res_appInfo = $jsonJobResponse[0].("appInfo")
+    Write-Host "sparkJob_Res_appInfo is $sparkJob_Res_appInfo ..." -ForegroundColor Green
+    #>
+    $sparkJob_Res_log = $jsonJobResponse[0].("log")
+    Write-Host "sparkJob_Res_log is $sparkJob_Res_log ..." -ForegroundColor Green
+
+    Write-Host "-----------------------------------------" -ForegroundColor Red
+
+    Start-Sleep -s 10
+}
+
+
+# 결과 Msg 만들기
+$Res_Msg =    "<테스트 앱> `r`n" `
+            + "[sparkJob_Res_state] : $sparkJob_Res_state `r`n" `
+            + "[sparkJob_Res_id] : $sparkJob_Res_id `r`n" `
+            + "[sparkJob_Res_log] : $sparkJob_Res_log"
+if ($sparkJob_Res_state -eq "success") {
+    Write-Host $Res_Msg -ForegroundColor Green
+} 
+elseif ($sparkJob_Res_state -eq "running") {
+    Write-Host $Res_Msg -ForegroundColor Green
+}
+elseif ($sparkJob_Res_state -eq "dead") {
+    Write-Host $Res_Msg -ForegroundColor Green
+}

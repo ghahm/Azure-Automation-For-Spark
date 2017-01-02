@@ -28,54 +28,33 @@ catch {
 Select-AzureRmSubscription -subscriptionName "[Subscription Name]" # For test
  
  
-####################################
+##########################################
 # Set these variables
-####################################
-$nameToken = "Spark162"
-$namePrefix = $nameToken.ToLower() + (Get-Date -Format "MMdd")
-
-$resourceGroupName = "GH-DATA-TEST-GRP"
-$hdinsightClusterName = "ghspark162demojpw"
-$defaultStorageAccountName = "ghtestdatastacc"
-$defaultBlobContainerName = $hdinsightClusterName
-
-$armTemplateContainer = "ghtestbigdata"
-$templateFile = "ARMTemplates/create-linux-based-spark-cluster-in-hdinsight-demo-1.6.2.json" # URI로 표시되기 때문에 /로 표시
+##########################################
+$defaultStorageAccountName = "[Storage Account Name that the template file's stored]"
+$armTemplateContainer = "[Container Name that the template file's stored]"
+$templateFile = "[template file in Container]" 
+# (ex) template file in Container : "ARMTemplates/sparkTemplate.json" # (주의) URI로 표시되기 때문에 /로 표시
 
 # Set the Current Azure Storage Account & get Template URI
-# Name : Name of the Storage Account
-$defaultStorageAccountContext = New-AzureStorageContext -StorageAccountName $defaultStorageAccountName -StorageAccountKey "hBuVVU8d61Z8YRB0l3T6EyMl4q1UZv5Wnd2ymcEIbNR3iB8OfeIOasXXD8AyDjJYxD65h+fnhPP+alYH7BnFHw=="
+$defaultStorageAccountContext = New-AzureStorageContext -StorageAccountName $defaultStorageAccountName -StorageAccountKey "[Storage Account Key]"
 Set-AzureRmCurrentStorageAccount -Context $defaultStorageAccountContext
-#Set-AzureRmCurrentStorageAccount -ResourceGroupName $resourceGroupName -Name $defaultStorageAccountName --> -Name을 인식하지 못함
+# Name : Name of the Storage Account
+# Set-AzureRmCurrentStorageAccount -ResourceGroupName $resourceGroupName -Name $defaultStorageAccountName --> (주의) -Name을 인식하지 못함
 $templateFileUri = New-AzureStorageBlobSASToken -Container $armTemplateContainer -Blob $templateFile -Permission r -ExpiryTime (Get-Date).AddHours(2.0) -FullUri
-"templateFileUri is $templateFileUri ..."
 
-
-####################################
+##########################################
 # Service names and varialbes
-####################################
-$namePrefix = $nameToken.ToLower() + (Get-Date -Format "MMdd")
-
-$resourceGroupName = "GH-DATA-TEST-GRP"
-$hdinsightClusterName = "ghspark162demojpw"
-$defaultStorageAccountName = "ghtestdatastacc"
-$defaultBlobContainerName = $hdinsightClusterName
-
-$armDeploymentName = $namePrefix
-
-########################################################
-# Create cluster and the dependent storage accounge
-########################################################
-
-# Create cluster and the dependent storage accounge
-"Creating HDInsight Cluster ..."
+##########################################
+$resourceGroupName = "[Resource Group Name]" # (ex) "HOL-SPARK-GRP"
+$hdinsightClusterName = "[Cluster Name]" # (ex) "holspark162"
 $parameters = @{clusterName="$hdinsightClusterName"}
 
+##########################################
+# Creating HDInsight Cluster
+##########################################
+Write-Host "`nCreating HDInsight Cluster ..." -ForegroundColor Green
 New-AzureRmResourceGroupDeployment `
-    -Name $armDeploymentName `
-    -ResourceGroupName $resourceGroupName `
-    -TemplateFile $templateFileUri `
-    -TemplateParameterObject $parameters
-
-# List cluster
-#Get-AzureRmHDInsightCluster -ResourceGroupName $resourceGroupName -ClusterName $hdinsightClusterName 
+   -ResourceGroupName $resourceGroupName `
+   -TemplateFile $templateFileUri `
+   -TemplateParameterObject $parameters

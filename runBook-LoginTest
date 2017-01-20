@@ -1,3 +1,5 @@
+# Run As Account (자동화 계정을 만드는 동안 또는 기존 계정에 대해 아래의 PowerShell 스크립트를 사용한 경우 생성되는 연결 자산)
+
 $connectionName = "AzureRunAsConnection"
 try
 {

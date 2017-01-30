@@ -1,0 +1,38 @@
+Param(
+    [Parameter (Mandatory= $false)][string] $MsgSubject,
+    [Parameter (Mandatory= $false)][string] $MsgBody
+)
+
+"Send a message..."
+# Sender
+$sender = "[Sender address]" # Ex : xxx@hotmail.com
+$pw = "[password]"
+# Receiver
+$receiver = "[Receiver address]" # Ex : yyy@hotmail.com
+
+# 메시지 만들기 
+$Message = New-Object System.Net.Mail.MailMessage  
+$Message.From = $sender 
+
+#$Message.replyTo = "" 
+$Message.To.Add($receiver) 
+$Message.Body = $MsgBody
+$Message.BodyEncoding = ([System.Text.Encoding]::UTF8)  
+$Message.IsBodyHtml = "true" 
+
+try { # Unicode exception을 무시하기 위한 try catch
+    $Message.Subject = $MsgSubject
+} catch {}
+$Message.SubjectEncoding = ([System.Text.Encoding]::UTF8) 
+
+# smtp 설정하기
+$myHotmailCred = New-Object System.Net.NetworkCredential($sender, $pw )
+$mySmtpClient = '[smtp address]' # ex : smtp.live.com
+$mySmtpClientPort = [port] # ex : 587
+
+# 전송하기
+$SmtpClient = New-Object System.Net.Mail.SmtpClient $mySmtpClient, $mySmtpClientPort 
+$SmtpClient.Credentials = $myHotmailCred 
+$SmtpClient.EnableSsl   = "true"
+  
+$SmtpClient.Send($Message) 

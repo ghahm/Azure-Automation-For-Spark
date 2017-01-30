@@ -1,0 +1,372 @@
+#########################################################################
+#### (1) Azure Login
+#########################################################################
+
+$connectionName = "AzureRunAsConnection" # Connection Asset
+
+# Send Email - 단계별 결과 통보를 위한 메시지 생성 
+# 변수 정의 - 현재 시간 & 단계 & Activity
+$time = Get-Date
+$krtime = $time.ToUniversalTime().AddHours(9).ToString("yyyy년 M월 d일 (dddd) tt %h:mm:ss")
+$step = "[1단계]"
+$activity = "Azure Login"
+
+try
+{
+    # Get the connection "AzureRunAsConnection "
+    $servicePrincipalConnection=Get-AutomationConnection -Name $connectionName         
+
+    "Login to Azure..."
+    Add-AzureRmAccount `
+        -ServicePrincipal `
+        -TenantId $servicePrincipalConnection.TenantId `
+        -ApplicationId $servicePrincipalConnection.ApplicationId `
+        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint -ErrorAction Stop
+}
+catch {
+    # Azure Login 실패 -> 메일 전송기기 
+    # (주의) 메일 전송 runbook을 호출하지 않은 이유는 Start-AzureRmAutomationRunbook 실행을 위해 Azure Login이
+    #        되어 있어야 하나 Azure Login시 Exception 발생으로 본 catch으로 분기되었기 때
+
+    # Sender
+    $sender = "ghahm@hotmail.com"
+    $pw = "!Drhouse73"
+    # Receiver
+    $receiver = "ghahm@microsoft.com"
+
+    # 메시지 만들기 
+    $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 
+    $MsgBody = "<b><font color=red>$step '$activity' Error 발생 <br/><br/> `
+                '$krtime'에 <br/>$Error.Exception.Message'</font></b><br/> `
+                에러가 발생하여 Azure 로그인에 실패하였습니다."
+
+    $Message = New-Object System.Net.Mail.MailMessage  
+    $Message.From = $sender 
+
+    $Message.To.Add($receiver) 
+    $Message.Body = $MsgBody
+    $Message.BodyEncoding = ([System.Text.Encoding]::UTF8)  
+    $Message.IsBodyHtml = "true" 
+
+    try { # Unicode exception을 무시하기 위한 try catch
+        $Message.Subject = $MsgSubject
+    } catch {}
+    $Message.SubjectEncoding = ([System.Text.Encoding]::UTF8)
+
+    # smtp 설정하기
+    $myHotmailCred = New-Object System.Net.NetworkCredential($sender, $pw )
+    $mySmtpClient = 'smtp.live.com'
+    $mySmtpClientPort = 587
+
+    # 전송하기
+    $SmtpClient = New-Object System.Net.Mail.SmtpClient $mySmtpClient, $mySmtpClientPort 
+    $SmtpClient.Credentials = $myHotmailCred 
+    $SmtpClient.EnableSsl   = "true"
+      
+    $SmtpClient.Send($Message) 
+
+    # Rubbook 실행 종료 
+    exit
+}
+
+# 이전 단계 정상 처리 메시지 생성
+$MsgBody = "<b><font color=blue>$step '$activity'이(가) '$krtime'에 정상 처리 되었습니다.<br/>"
+
+
+#########################################################################
+#### (2) Select-AzureRmSubscription
+#########################################################################
+# 복수의 Subscription이 있을 경우, 해당 Subscription을 지정하기 
+"Select-AzureRmSubscription..."
+
+# Send Email - 단계별 결과 통보를 위한 메시지 생성 
+# 변수 정의 - 현재 시간 & 단계 & Activity
+$time = Get-Date
+$krtime = $time.ToUniversalTime().AddHours(9).ToString("yyyy년 M월 d일 (dddd) tt %h:mm:ss")
+$step = "[2단계]"
+$activity = "Select-AzureRmSubscription"
+
+try {
+    Select-AzureRmSubscription -subscriptionName "My Internal Subscription" -ErrorAction Stop
+}
+catch {
+    $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 
+    $MsgBody = $MsgBody + "<b><font color=red>$step '$activity' Error 발생 <br/><br/> `
+                            '$krtime'에 <br/>$Error.Exception.Message'</font></b><br/> `
+                            에러가 발생하여 Select-AzureRmSubscription에 실패하였습니다."
+
+    $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
+
+    Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
+                                    –Name "SendEmail" `
+                                    -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
+                                    –Parameters $params -ErrorAction Stop
+    # Rubbook 실행 종료 
+    exit
+}
+
+# 이전 단계 정상 처리 메시지 생성
+$MsgBody = $MsgBody + "<b><font color=blue>$step '$activity'가 '$krtime'에 정상 처리 되었습니다.<br/>"
+
+
+#########################################################################
+#### (3) HDInsight Spark Cluster 생성하기
+#########################################################################
+
+# Send Email - 단계별 결과 통보를 위한 메시지 생성 
+# 변수 정의 - 현재 시간 & 단계 & Activity
+$time = Get-Date
+$krtime = $time.ToUniversalTime().AddHours(9).ToString("yyyy년 M월 d일 (dddd) tt %h:mm:ss")
+$step = "[3단계]"
+$activity = "Create HDInsight Spark Cluster"
+
+# Service names and varialbes
+$resourceGroupName = "GH-GAME-BIGDATA-GRP" # (ex) "HOL-SPARK-GRP"
+$hdinsightClusterName = "ghspark20demojpe" # (ex) "holspark162"
+
+try {
+    # 동일 Cluster가 생성되어 있는지 Check
+    # 현재는 Automation에서 Get-AzureRmHDInsightCluster를 지원하지 않지만 추후 필요
+    $AzureRmHDInsightCluster = Get-AzureRmHDInsightCluster -ResourceGroupName $resourceGroupName -ClusterName $hdinsightClusterName -ErrorAction Stop
+    # 이전 단계 정상 처리 메시지 생성
+    $MsgBody = $MsgBody + "<b><font color=blue>$step '$activity'가 '$krtime'에 정상 처리 되었습니다. ['$hdinsightClusterName'는(은) 이미 생성된 Cluster입니다.]<br/>"
+} 
+catch {
+    try {
+        # 동일 Cluster가 없는 경우, 신규로 생성하기
+
+        # 변수 정의하기
+        $defaultStorageAccountName = "ghtestbigdatastacc"
+        $armTemplateContainer = "ghtestbigdata"
+        $templateFile = "ARMTemplates/create-linux-based-spark-cluster-in-hdinsight-demo-2.0-W1-JPE.json" 
+        # (ex) template file in Container : "ARMTemplates/sparkTemplate.json" # (주의) URI로 표시되기 때문에 /로 표시
+
+        # Set the Current Azure Storage Accont & get Template URI
+        $defaultStorageAccountContext = New-AzureStorageContext -StorageAccountName $defaultStorageAccountName -StorageAccountKey "5EaUaaJKvYnoSEvjLDBdsBrghfygRecBvayWXiWM17RafPZNzxsIL/XuI1ZTWqnIg63CJJjBXd5k7n5lilOqJA==" -ErrorAction Stop
+        Set-AzureRmCurrentStorageAccount -Context $defaultStorageAccountContext -ErrorAction Stop
+        $templateFileUri = New-AzureStorageBlobSASToken -Container $armTemplateContainer -Blob $templateFile -Permission r -ExpiryTime (Get-Date).AddHours(2.0) -FullUri -ErrorAction Stop
+
+        $parameters = @{clusterName="$hdinsightClusterName"}
+
+        # Creating HDInsight Cluster
+
+        Write-Host "`nCreating HDInsight Cluster ..." -ForegroundColor Green
+        New-AzureRmResourceGroupDeployment `
+        -ResourceGroupName $resourceGroupName `
+        -TemplateFile $templateFileUri `
+        -TemplateParameterObject $parameters `
+        -ErrorAction Stop
+
+        # 이전 단계 정상 처리 메시지 생성
+        $MsgBody = $MsgBody + "<b><font color=blue>$step '$activity'가 '$krtime'에 정상 처리 되었습니다.<br/>"
+    }
+    catch {
+        # Cluster 생성 실패 시, 경고 메일 전송 
+        $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 
+        $MsgBody = $MsgBody + "<b><font color=red>$step '$activity' Error 발생 <br/><br/> `
+                                '$krtime'에 <br/>$Error.Exception.Message'</font></b><br/> `
+                                에러가 발생하여 Select-AzureRmSubscription에 실패하였습니다."
+
+        $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
+
+        Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
+                                        –Name "SendEmail" `
+                                        -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
+                                        –Parameters $params `
+                                        -ErrorAction Stop
+        # Rubbook 실행 종료 
+        exit        
+    }
+}
+
+
+#########################################################################
+#### (4-1) Spark Application 실행하기
+#########################################################################
+
+# Send Email - 단계별 결과 통보를 위한 메시지 생성 
+# 변수 정의 - 현재 시간 & 단계 & Activity
+$time = Get-Date
+$krtime = $time.ToUniversalTime().AddHours(9).ToString("yyyy년 M월 d일 (dddd) tt %h:mm:ss")
+$step = "[4-1단계]"
+$applicationName = "sampleSQL.py"
+$activity = "Run Spark Application - $applicationName"                                
+
+# Spark Application 실행을 위한 cluster 정보 및 Credential 생성하기 
+$clusterUser = "admin"
+$clusterPwd = "!2345Asdfg"
+$clusterName = $hdinsightClusterName
+$passwd = ConvertTo-SecureString $clusterPwd –AsPlainText -Force 
+$creds = New-Object System.Management.Automation.PSCredential($clusterUser, $passwd)
+
+# POST Invoke-WebRequest Spark job
+$livyUri = "https://" + $clusterName + ".azurehdinsight.net/livy/batches"
+$sparkPyShellFolder = "wasbs://" + $clusterName + "@ghtestbigdatastacc.blob.core.windows.net/apps/"
+$jarName = $sparkPyShellFolder + "sampleSQL.py"
+$className = $jarName
+
+$body = @{file = $jarName ;
+            className = $className ;
+         }
+try {
+    $sparkJobResponse = Invoke-WebRequest -Uri $livyUri `
+                                -Credential $creds `
+                                -Body (ConvertTo-Json $body) `
+                                -ContentType "application/json" `
+                                -UseBasicParsing `
+                                -Method POST `
+                                -ErrorAction Stop
+}
+catch
+{
+    # Application 실행 실패 시, 경고 메일 전송
+    $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 
+    $MsgBody = $MsgBody + "<b><font color=red>$step '$activity' Error 발생 <br/><br/> `
+                            '$krtime'에 <br/>$Error.Exception.Message'</font></b><br/> `
+                            에러가 발생하여 '$activity' 실행을 실패하였습니다."
+
+    $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
+
+    Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
+                                    –Name "SendEmail" `
+                                    -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
+                                    –Parameters $params `
+                                    -ErrorAction Stop
+    # Rubbook 실행 종료 
+    exit 
+}
+
+#Write-Host "sparkJobResponse is $sparkJobResponse ..." -ForegroundColor Green
+$jsonJobResponse = ConvertFrom-Json -InputObject $sparkJobResponse
+$sparkJobId = $jsonJobResponse[0].("id") 
+#Write-Host "Spark Job ID is $sparkJobId ..." -ForegroundColor Green
+#$sparkJobState = $jsonJobResponse[0].("state")
+#Write-Host "Spark Job State is $sparkJobState ..." -ForegroundColor Green
+
+# 이전 단계 정상 처리 메시지 생성
+$MsgBody = $MsgBody + "<b><font color=blue>$step '$activity'가 '$krtime'에 정상적으로 시작 되었습니다. [Spark Job ID : $sparkJobId] <br/>" 
+
+#########################################################################
+#### (4-2) Spark Application 실행 Status Check
+#########################################################################
+
+# Send Email - 단계별 결과 통보를 위한 메시지 생성 
+# 변수 정의 - 현재 시간 & 단계 & Activity
+$time = Get-Date
+$krtime = $time.ToUniversalTime().AddHours(9).ToString("yyyy년 M월 d일 (dddd) tt %h:mm:ss")
+$step = "[4-2단계]"
+$applicationName = "sampleSQL.py"
+$activity = "Check Spark Application status - $applicationName"    
+
+# GET Invoke-WebRequest Spark job
+$timeoutsec = 300 # (ex) 3600
+$startsleepsec = 10 # 체크 주기
+$livyUri = "https://" + $clusterName + ".azurehdinsight.net/livy/batches"
+$sparkJobIdLivyUri = $livyUri + "/" + $sparkJobId
+
+#Write-Host "livyUri..." $livyUri -ForegroundColor Green 
+
+$sparkJob_Res_state = "running" # Initializing
+
+while ($sparkJob_Res_state -eq "running" -or $sparkJob_Res_state -eq "starting") {
+    try {
+        $sparkJobResponse = Invoke-WebRequest -Uri $sparkJobIdLivyUri `
+                                    -Credential $creds `
+                                    -TimeoutSec $timeoutsec `
+                                    -UseBasicParsing `
+                                    -Method GET
+    }
+    catch
+    {
+        #--> 처리 여부 추후 검토 
+        # Application 실행 실패 시, 경고 메일 전송
+        $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 
+        $MsgBody = $MsgBody + "<b><font color=red>$step '$activity' Error 발생 <br/><br/> `
+                                '$krtime'에 <br/>$Error.Exception.Message'</font></b><br/> `
+                                에러가 발생하여 '$activity' [Spark Job ID : $sparkJobId] 실행을 실패하였습니다."
+
+        $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
+
+        Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
+                                        –Name "SendEmail" `
+                                        -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
+                                        –Parameters $params `
+                                        -ErrorAction Stop
+        # Rubbook 실행 종료 
+        # 정책 검토가 필요
+        #exit 
+    }
+    #Write-Host "sparkJobResponse is $sparkJobResponse ..." -ForegroundColor Green
+    $jsonJobResponse = ConvertFrom-Json -InputObject $sparkJobResponse
+    #Write-Host "jsonJobResponse is $jsonJobResponse ..." -ForegroundColor Green 
+    $sparkJob_Res_id = $jsonJobResponse[0].("id")
+    Write-Host "sparkJob_Res_id is $sparkJob_Res_id ..." -ForegroundColor Green
+    # state --> running, dead, 
+    $sparkJob_Res_state = $jsonJobResponse[0].("state")
+    Write-Host "sparkJob_Res_state is $sparkJob_Res_state ..." -ForegroundColor Green
+    <#
+    $sparkJob_Res_appInfo = $jsonJobResponse[0].("appInfo")
+    Write-Host "sparkJob_Res_appInfo is $sparkJob_Res_appInfo ..." -ForegroundColor Green
+    #>
+    $sparkJob_Res_log = $jsonJobResponse[0].("log")
+    #Write-Host "sparkJob_Res_log is $sparkJob_Res_log ..." -ForegroundColor Green
+
+    #Write-Host "-----------------------------------------" -ForegroundColor Red
+
+    # 체크 주기 ($startsleepsec)
+    Start-Sleep -s $startsleepsec
+}
+
+# 이전 단계 정상 처리 메시지 생성
+if ($sparkJob_Res_state -eq "success") {
+    $MsgBody = $MsgBody + "<b><font color=blue>$step '$activity'가 '$krtime'에 정상적으로 완료 되었습니다. `
+                            <br/>[Spark Job Response ID : $sparkJob_Res_id] `
+                            <br/>[Spark Job Status : $sparkJob_Res_state] `
+                            <br/>[Spark Job Response Log : $sparkJob_Res_log] <br/>"
+} elseif ($sparkJob_Res_state -eq "finished") {
+    $MsgBody = $MsgBody + "<b><font color=red>$step '$activity'가 '$krtime'에 Time-out 시간 '$timeoutsec'을 초과하여 실행되고 있습니다. `
+                            <br/>[Spark Job Response ID : $sparkJob_Res_id] `
+                            <br/>[Spark Job Status : $sparkJob_Res_state] `
+                            <br/>[Spark Job Response Log : $sparkJob_Res_log] <br/>"    
+} else {
+    $MsgBody = $MsgBody + "<b><font color=red>$step '$activity'가 '$krtime'에 비정상으로 처리되었습니다. `
+                            <br/>[Spark Job Response ID : $sparkJob_Res_id] `
+                            <br/>[Spark Job Status : $sparkJob_Res_state] `
+                            <br/>[Spark Job Response Log : $sparkJob_Res_log] <br/>"    
+}
+
+
+#########################################################################
+#### (5) HDInsight Spark Cluster 삭제하기
+#########################################################################
+
+# Send Email - 단계별 결과 통보를 위한 메시지 생성 
+# 변수 정의 - 현재 시간 & 단계 & Activity
+$time = Get-Date
+$krtime = $time.ToUniversalTime().AddHours(9).ToString("yyyy년 M월 d일 (dddd) tt %h:mm:ss")
+$step = "[5단계]"
+$activity = "Delete HDInsight Spark Cluster"
+
+# Check if cluster already exists
+try {
+    #$AzureRmHDInsightCluster = Get-AzureRmHDInsightCluster -ClusterName $hdinsightClusterName -ErrorAction Stop
+    Remove-AzureRmHDInsightCluster -ResourceGroupName $resourceGroupName -ClusterName $hdinsightClusterName
+    # 이전 단계 정상 처리 메시지 생성
+    $MsgBody = $MsgBody + "<b><font color=blue>$step '$activity'가 '$krtime'에 정상 처리 되었습니다.<br/>"
+
+} catch {
+    # HDInsight Cluster 삭제 실패 시, 경고 메일 전송
+    $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 
+    $MsgBody = $MsgBody + "<b><font color=red>$step '$activity' Error 발생 <br/><br/> `
+                            '$krtime'에 <br/>$Error.Exception.Message'</font></b><br/> `
+                            에러가 발생하여 '$activity' 실행을 실패하였습니다."
+}
+
+# 배치 처리 완료 메시지 전송
+$MsgSubject = "'$krtime'에 배치 처리가 완료 되였습니다." 
+$params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
+
+Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
+                                –Name "SendEmail" `
+                                -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
+                                –Parameters $params -ErrorAction Stop

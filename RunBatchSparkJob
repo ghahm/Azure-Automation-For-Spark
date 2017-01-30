@@ -30,7 +30,7 @@ catch {
 
     # Sender
     $sender = "xxx@hotmail.com"
-    $pw = "!Drhouse73"
+    $pw = "[password]"
     # Receiver
     $receiver = "yyy@hotmail.com"
 
@@ -55,8 +55,8 @@ catch {
 
     # smtp 설정하기
     $myHotmailCred = New-Object System.Net.NetworkCredential($sender, $pw )
-    $mySmtpClient = 'smtp.live.com'
-    $mySmtpClientPort = 587
+    $mySmtpClient = '[smtp address]' # ex : smtp.live.com
+    $mySmtpClientPort = [port] # ex : 587
 
     # 전송하기
     $SmtpClient = New-Object System.Net.Mail.SmtpClient $mySmtpClient, $mySmtpClientPort 
@@ -87,7 +87,7 @@ $step = "[2단계]"
 $activity = "Select-AzureRmSubscription"
 
 try {
-    Select-AzureRmSubscription -subscriptionName "My Internal Subscription" -ErrorAction Stop
+    Select-AzureRmSubscription -subscriptionName "[Subscription Name]" -ErrorAction Stop
 }
 catch {
     $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 

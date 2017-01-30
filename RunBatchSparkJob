@@ -258,8 +258,8 @@ $applicationName = "sampleSQL.py"
 $activity = "Check Spark Application status - $applicationName"    
 
 # GET Invoke-WebRequest Spark job
-$timeoutsec = 300 # (ex) 3600
-$startsleepsec = 10 # 체크 주기
+$timeoutsec = [secs] # (ex) 3600
+$startsleepsec = [secs] # 체크 주기 (ex) 60
 $livyUri = "https://" + $clusterName + ".azurehdinsight.net/livy/batches"
 $sparkJobIdLivyUri = $livyUri + "/" + $sparkJobId
 

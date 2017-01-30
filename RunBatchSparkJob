@@ -192,15 +192,15 @@ $applicationName = "sampleSQL.py"
 $activity = "Run Spark Application - $applicationName"                                
 
 # Spark Application 실행을 위한 cluster 정보 및 Credential 생성하기 
-$clusterUser = "admin"
-$clusterPwd = "!2345Asdfg"
+$clusterUser = "[Cluster login user ID]" # ex : admin
+$clusterPwd = "[Cluster login pw]"
 $clusterName = $hdinsightClusterName
 $passwd = ConvertTo-SecureString $clusterPwd –AsPlainText -Force 
 $creds = New-Object System.Management.Automation.PSCredential($clusterUser, $passwd)
 
 # POST Invoke-WebRequest Spark job
 $livyUri = "https://" + $clusterName + ".azurehdinsight.net/livy/batches"
-$sparkPyShellFolder = "wasbs://" + $clusterName + "@ghtestbigdatastacc.blob.core.windows.net/apps/"
+$sparkPyShellFolder = "wasbs://" + $clusterName + "@[Storage Account Name].blob.core.windows.net/apps/"
 $jarName = $sparkPyShellFolder + "sampleSQL.py"
 $className = $jarName
 

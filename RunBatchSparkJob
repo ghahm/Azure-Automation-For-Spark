@@ -97,9 +97,9 @@ catch {
 
     $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
 
-    Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
-                                    –Name "SendEmail" `
-                                    -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
+    Start-AzureRmAutomationRunbook –AutomationAccountName "[AutomationAccountName]" `
+                                    –Name "[SendEmail Powershell Name]" ` # ex : SendEmail
+                                    -ResourceGroupName "[ARM Resource Group Name]" `
                                     –Parameters $params -ErrorAction Stop
     # Rubbook 실행 종료 
     exit
@@ -121,8 +121,8 @@ $step = "[3단계]"
 $activity = "Create HDInsight Spark Cluster"
 
 # Service names and varialbes
-$resourceGroupName = "GH-GAME-BIGDATA-GRP" # (ex) "HOL-SPARK-GRP"
-$hdinsightClusterName = "ghspark20demojpe" # (ex) "holspark162"
+$resourceGroupName = "[ARM Resource Group Name]" # (ex) "HOL-SPARK-GRP"
+$hdinsightClusterName = "[HDInsight Cluster Name]" # (ex) "holspark162"
 
 try {
     # 동일 Cluster가 생성되어 있는지 Check
@@ -136,13 +136,13 @@ catch {
         # 동일 Cluster가 없는 경우, 신규로 생성하기
 
         # 변수 정의하기
-        $defaultStorageAccountName = "ghtestbigdatastacc"
-        $armTemplateContainer = "ghtestbigdata"
-        $templateFile = "ARMTemplates/create-linux-based-spark-cluster-in-hdinsight-demo-2.0-W1-JPE.json" 
+        $defaultStorageAccountName = "[Storage Account Name]"
+        $armTemplateContainer = "[Container Name]"
+        $templateFile = "[Template Blob Name]" 
         # (ex) template file in Container : "ARMTemplates/sparkTemplate.json" # (주의) URI로 표시되기 때문에 /로 표시
 
         # Set the Current Azure Storage Accont & get Template URI
-        $defaultStorageAccountContext = New-AzureStorageContext -StorageAccountName $defaultStorageAccountName -StorageAccountKey "5EaUaaJKvYnoSEvjLDBdsBrghfygRecBvayWXiWM17RafPZNzxsIL/XuI1ZTWqnIg63CJJjBXd5k7n5lilOqJA==" -ErrorAction Stop
+        $defaultStorageAccountContext = New-AzureStorageContext -StorageAccountName $defaultStorageAccountName -StorageAccountKey "[StorageAccountKey]" -ErrorAction Stop
         Set-AzureRmCurrentStorageAccount -Context $defaultStorageAccountContext -ErrorAction Stop
         $templateFileUri = New-AzureStorageBlobSASToken -Container $armTemplateContainer -Blob $templateFile -Permission r -ExpiryTime (Get-Date).AddHours(2.0) -FullUri -ErrorAction Stop
 
@@ -169,11 +169,10 @@ catch {
 
         $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
 
-        Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
-                                        –Name "SendEmail" `
-                                        -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
-                                        –Parameters $params `
-                                        -ErrorAction Stop
+        Start-AzureRmAutomationRunbook –AutomationAccountName "[AutomationAccountName]" `
+                                        –Name "[SendEmail Powershell Name]" ` # ex : SendEmail
+                                        -ResourceGroupName "[ARM Resource Group Name]" `
+                                        –Parameters $params -ErrorAction Stop
         # Rubbook 실행 종료 
         exit        
     }
@@ -287,11 +286,10 @@ while ($sparkJob_Res_state -eq "running" -or $sparkJob_Res_state -eq "starting")
 
         $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
 
-        Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
-                                        –Name "SendEmail" `
-                                        -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
-                                        –Parameters $params `
-                                        -ErrorAction Stop
+        Start-AzureRmAutomationRunbook –AutomationAccountName "[AutomationAccountName]" `
+                                        –Name "[SendEmail Powershell Name]" ` # ex : SendEmail
+                                        -ResourceGroupName "[ARM Resource Group Name]" `
+                                        –Parameters $params -ErrorAction Stop
         # Rubbook 실행 종료 
         # 정책 검토가 필요
         #exit 
@@ -365,7 +363,7 @@ try {
 $MsgSubject = "'$krtime'에 배치 처리가 완료 되였습니다." 
 $params = @{"MsgSubject"=$MsgSubject;"MsgBody"=$MsgBody} 
 
-Start-AzureRmAutomationRunbook –AutomationAccountName "ghautomation" `
-                                –Name "SendEmail" `
-                                -ResourceGroupName "GH-GAME-BIGDATA-GRP" `
+Start-AzureRmAutomationRunbook –AutomationAccountName "[AutomationAccountName]" `
+                                –Name "[SendEmail Powershell Name]" ` # ex : SendEmail
+                                -ResourceGroupName "[ARM Resource Group Name]" `
                                 –Parameters $params -ErrorAction Stop

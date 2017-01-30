@@ -348,12 +348,11 @@ $step = "[5단계]"
 $activity = "Delete HDInsight Spark Cluster"
 
 # Check if cluster already exists
-try {
-    #$AzureRmHDInsightCluster = Get-AzureRmHDInsightCluster -ClusterName $hdinsightClusterName -ErrorAction Stop
-    Remove-AzureRmHDInsightCluster -ResourceGroupName $resourceGroupName -ClusterName $hdinsightClusterName
+try {    
+    $resourceType = "Microsoft.HDInsight/clusters"
+    Remove-AzureRmResource -Name $hdinsightClusterName -ResourceGroupName $resourceGroupName -ResourceType $resourceType
     # 이전 단계 정상 처리 메시지 생성
     $MsgBody = $MsgBody + "<b><font color=blue>$step '$activity'가 '$krtime'에 정상 처리 되었습니다.<br/>"
-
 } catch {
     # HDInsight Cluster 삭제 실패 시, 경고 메일 전송
     $MsgSubject = "'$krtime'에 $step '$activity' Error이(가) 발생하였습니다." 
